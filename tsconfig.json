@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "target": "es6",
+    "noImplicitAny": true,
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "*": ["node_modules/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}
+
+// {
+//   "compilerOptions": {
+//     "target": "es6",
+//     "module": "es2015",
+//     "rootDir": ".",
+//     "outDir": "./dist",
+//     "esModuleInterop": true,
+//     "moduleResolution": "Bundler",
+//     "resolveJsonModule": true,
+//     "strict": true
+//   },
+//   "include": ["src/**/*.ts"],
+//   "exclude": ["node_modules"]
+// }
