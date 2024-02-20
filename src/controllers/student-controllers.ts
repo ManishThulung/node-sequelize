@@ -3,6 +3,10 @@ import Student from "../models/Students";
 import Course from "../models/Courses";
 import Subject from "../models/Subjects";
 import { Op } from "sequelize";
+import * as fs from "fs";
+import { sequelize } from "../db";
+import { QueryOptions, QueryOptionsWithType, QueryTypes } from "sequelize";
+import path from "path";
 
 export const getStudents = async (
   req: Request,
@@ -10,15 +14,34 @@ export const getStudents = async (
   next: NextFunction
 ) => {
   try {
-    const students = await Student.findAll({
-      where: {
-        deletedAt: {
-          [Op.eq]: null,
-        },
-      },
-      attributes: { exclude: ["createdAt", "updatedAt", "deletedAt"] },
-    });
-    res.status(200).json({ students });
+    // const result = await Student.findAll({
+    //   where: {
+    //     deletedAt: {
+    //       [Op.eq]: null,
+    //     },
+    //   },
+    //   attributes: { exclude: ["createdAt", "updatedAt", "deletedAt"] },
+    // });
+
+    let sql;
+
+    const filePath = path.resolve(
+      __dirname,
+      "../db/functions/get_students.sql"
+    );
+    try {
+      sql = fs.readFileSync(filePath).toString();
+    } catch (error) {
+      console.log(error);
+    }
+
+    await sequelize.query(sql, {
+      type: QueryTypes.RAW,
+    } as QueryOptions | QueryOptionsWithType<QueryTypes.RAW>);
+
+    const result = await sequelize.query("SELECT * FROM get_students()");
+
+    res.status(200).json({ result });
   } catch (error) {
     next(error);
   }
