@@ -18,11 +18,7 @@ export const getStudents = async (
       },
       attributes: { exclude: ["createdAt", "updatedAt", "deletedAt"] },
     });
-    res.status(200).json({
-      success: true,
-      message: "this is to get all students details",
-      data: students,
-    });
+    res.status(200).json({ students });
   } catch (error) {
     next(error);
   }
@@ -70,11 +66,7 @@ export const getStudentById = async (
       });
     }
 
-    res.status(200).json({
-      success: true,
-      message: "get student by id",
-      data: student,
-    });
+    res.status(200).json({ student });
   } catch (error) {
     next(error);
   }
@@ -86,30 +78,54 @@ export const createStudent = async (
   next: NextFunction
 ) => {
   try {
-    const { fullName, age, courseId } = req.body;
+    const { id, fullName, age, courseId, courseName, subjects } = req.body;
 
-    console.log(courseId, "body");
-    let student;
-    if (courseId) {
-      const course = await Course.findByPk(courseId);
-      if (course) {
-        console.log(course, "course");
-        student = await Student.create({
-          fullName,
-          age,
-          courseId,
-        });
-      } else {
-        throw new Error("id not found");
-      }
-    } else {
-      throw new Error("id not found");
-    }
-    res.status(200).json({
-      success: true,
-      message: "this is to get all students details",
-      data: student,
+    // if (subjects) {
+    //   subjects.forEach(async (subject: any) => {
+    //     const existSubject = await Subject.findOne({
+    //       where: {
+    //         name: subject,
+    //       },
+    //     });
+
+    //     let newSubject;
+    //     if (!existSubject) {
+    //       newSubject = await Subject.create({
+    //         name: subject,
+    //         courseId: course?.dataValues?.id ?? newCourse?.dataValues?.id,
+    //       });
+    //     }
+    //   });
+    // }
+
+    // const student = await Student.findOne({
+    //   where: { fullName },
+    //   attributes: { exclude: ["createdAt", "updatedAt", "deletedAt"] },
+    // });
+
+    const courseData = {
+      id: courseId,
+      name: courseName,
+    };
+
+    const courseInstance = await Course.upsert(courseData, {
+      returning: true,
     });
+
+    const data = {
+      id: id,
+      fullName,
+      age,
+      courseId: courseInstance[0]?.dataValues?.id,
+    };
+
+    const instance = await Student.upsert(data, {
+      returning: true,
+    });
+
+    if (instance) {
+      return res.status(201).json({ data: instance[0] });
+    }
   } catch (error) {
     next(error);
   }
