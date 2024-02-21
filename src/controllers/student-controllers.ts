@@ -3,6 +3,10 @@ import Student from "../models/Students";
 import Course from "../models/Courses";
 import Subject from "../models/Subjects";
 import { Op } from "sequelize";
+import * as fs from "fs";
+import { sequelize } from "../db";
+import { QueryOptions, QueryOptionsWithType, QueryTypes } from "sequelize";
+import path from "path";
 
 export const getStudents = async (
   req: Request,
@@ -10,19 +14,34 @@ export const getStudents = async (
   next: NextFunction
 ) => {
   try {
-    const students = await Student.findAll({
-      where: {
-        deletedAt: {
-          [Op.eq]: null,
-        },
-      },
-      attributes: { exclude: ["createdAt", "updatedAt", "deletedAt"] },
-    });
-    res.status(200).json({
-      success: true,
-      message: "this is to get all students details",
-      data: students,
-    });
+    // const result = await Student.findAll({
+    //   where: {
+    //     deletedAt: {
+    //       [Op.eq]: null,
+    //     },
+    //   },
+    //   attributes: { exclude: ["createdAt", "updatedAt", "deletedAt"] },
+    // });
+
+    let sql;
+
+    const filePath = path.resolve(
+      __dirname,
+      "../db/functions/get_students.sql"
+    );
+    try {
+      sql = fs.readFileSync(filePath).toString();
+    } catch (error) {
+      console.log(error);
+    }
+
+    await sequelize.query(sql, {
+      type: QueryTypes.RAW,
+    } as QueryOptions | QueryOptionsWithType<QueryTypes.RAW>);
+
+    const result = await sequelize.query("SELECT * FROM get_students()");
+
+    res.status(200).json({ result });
   } catch (error) {
     next(error);
   }
@@ -70,11 +89,7 @@ export const getStudentById = async (
       });
     }
 
-    res.status(200).json({
-      success: true,
-      message: "get student by id",
-      data: student,
-    });
+    res.status(200).json({ student });
   } catch (error) {
     next(error);
   }
@@ -86,30 +101,54 @@ export const createStudent = async (
   next: NextFunction
 ) => {
   try {
-    const { fullName, age, courseId } = req.body;
+    const { id, fullName, age, courseId, courseName, subjects } = req.body;
 
-    console.log(courseId, "body");
-    let student;
-    if (courseId) {
-      const course = await Course.findByPk(courseId);
-      if (course) {
-        console.log(course, "course");
-        student = await Student.create({
-          fullName,
-          age,
-          courseId,
-        });
-      } else {
-        throw new Error("id not found");
-      }
-    } else {
-      throw new Error("id not found");
-    }
-    res.status(200).json({
-      success: true,
-      message: "this is to get all students details",
-      data: student,
+    // if (subjects) {
+    //   subjects.forEach(async (subject: any) => {
+    //     const existSubject = await Subject.findOne({
+    //       where: {
+    //         name: subject,
+    //       },
+    //     });
+
+    //     let newSubject;
+    //     if (!existSubject) {
+    //       newSubject = await Subject.create({
+    //         name: subject,
+    //         courseId: course?.dataValues?.id ?? newCourse?.dataValues?.id,
+    //       });
+    //     }
+    //   });
+    // }
+
+    // const student = await Student.findOne({
+    //   where: { fullName },
+    //   attributes: { exclude: ["createdAt", "updatedAt", "deletedAt"] },
+    // });
+
+    const courseData = {
+      id: courseId,
+      name: courseName,
+    };
+
+    const courseInstance = await Course.upsert(courseData, {
+      returning: true,
     });
+
+    const data = {
+      id: id,
+      fullName,
+      age,
+      courseId: courseInstance[0]?.dataValues?.id,
+    };
+
+    const instance = await Student.upsert(data, {
+      returning: true,
+    });
+
+    if (instance) {
+      return res.status(201).json({ data: instance[0] });
+    }
   } catch (error) {
     next(error);
   }

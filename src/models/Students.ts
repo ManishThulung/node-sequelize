@@ -8,6 +8,7 @@ const Student = sequelize.define("student", {
     allowNull: false,
     primaryKey: true,
     autoIncrement: true,
+    unique: true,
   },
 
   fullName: {
