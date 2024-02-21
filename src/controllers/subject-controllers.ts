@@ -1,6 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import Subject from "../models/Subjects";
 import { Op } from "sequelize";
+import * as fs from "fs";
+import { sequelize } from "../db";
+import { QueryOptions, QueryOptionsWithType, QueryTypes } from "sequelize";
+import path from "path";
 
 export const getSubjects = async (
   req: Request,
@@ -92,14 +96,27 @@ export const deleteSubject = async (
   next: NextFunction
 ) => {
   try {
-    await Subject.update(
-      { deletedAt: Date.now() },
-      { where: { id: req.params.id } }
+    let sql;
+
+    const filePath = path.resolve(
+      __dirname,
+      "../db/functions/delete_subject_by_id.sql"
     );
-    res.status(200).json({
-      success: true,
-      message: "deleted",
-    });
+    try {
+      sql = fs.readFileSync(filePath).toString();
+    } catch (error) {
+      console.log(error);
+    }
+
+    await sequelize.query(sql, {
+      type: QueryTypes.RAW,
+    } as QueryOptions | QueryOptionsWithType<QueryTypes.RAW>);
+
+    const [result, ...other] = await sequelize.query(
+      `SELECT delete_subject_by_id(${req.params.id})`
+    );
+
+    res.status(200).json({ result });
   } catch (error) {
     next(error);
   }

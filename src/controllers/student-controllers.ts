@@ -39,7 +39,9 @@ export const getStudents = async (
       type: QueryTypes.RAW,
     } as QueryOptions | QueryOptionsWithType<QueryTypes.RAW>);
 
-    const result = await sequelize.query("SELECT * FROM get_students()");
+    const [result, ...other] = await sequelize.query(
+      "SELECT * FROM get_students()"
+    );
 
     res.status(200).json({ result });
   } catch (error) {

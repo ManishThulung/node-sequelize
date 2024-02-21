@@ -2,6 +2,10 @@ import { NextFunction, Request, Response } from "express";
 import Course from "../models/Courses";
 import Subject from "../models/Subjects";
 import { Op } from "sequelize";
+import * as fs from "fs";
+import { sequelize } from "../db";
+import { QueryOptions, QueryOptionsWithType, QueryTypes } from "sequelize";
+import path from "path";
 
 export const getCourses = async (
   req: Request,
@@ -9,19 +13,32 @@ export const getCourses = async (
   next: NextFunction
 ) => {
   try {
-    const courses = await Course.findAll({
-      where: {
-        deletedAt: {
-          [Op.eq]: null,
-        },
-      },
-      attributes: { exclude: ["updatedAt", "createdAt", "deletedAt"] },
-    });
-    res.status(200).json({
-      success: true,
-      message: "this is to get all Courses details",
-      data: courses,
-    });
+    // const courses = await Course.findAll({
+    //   where: {
+    //     deletedAt: {
+    //       [Op.eq]: null,
+    //     },
+    //   },
+    //   attributes: { exclude: ["updatedAt", "createdAt", "deletedAt"] },
+    // });
+
+    let sql;
+
+    const filePath = path.resolve(__dirname, "../db/functions/get_courses.sql");
+    try {
+      sql = fs.readFileSync(filePath).toString();
+    } catch (error) {
+      console.log(error);
+    }
+
+    await sequelize.query(sql, {
+      type: QueryTypes.RAW,
+    } as QueryOptions | QueryOptionsWithType<QueryTypes.RAW>);
+
+    const [result, ...other] = await sequelize.query(
+      "SELECT * FROM get_courses()"
+    );
+    res.status(200).json({ result });
   } catch (error) {
     next(error);
   }
@@ -33,26 +50,43 @@ export const getCourseById = async (
   next: NextFunction
 ) => {
   try {
-    const course = await Course.findOne({
-      where: {
-        id: req.params.id,
-      },
-      attributes: { exclude: ["updatedAt", "createdAt", "deletedAt"] },
-      include: [
-        {
-          model: Subject,
-          as: "subjects",
-          attributes: {
-            exclude: ["updatedAt", "createdAt", "deletedAt", "courseId"],
-          },
-        },
-      ],
-    });
-    res.status(200).json({
-      success: true,
-      message: "get course by id",
-      data: course,
-    });
+    // const course = await Course.findOne({
+    //   where: {
+    //     id: req.params.id,
+    //   },
+    //   attributes: { exclude: ["updatedAt", "createdAt", "deletedAt"] },
+    //   include: [
+    //     {
+    //       model: Subject,
+    //       as: "subjects",
+    //       attributes: {
+    //         exclude: ["updatedAt", "createdAt", "deletedAt", "courseId"],
+    //       },
+    //     },
+    //   ],
+    // });
+
+    let sql;
+
+    const filePath = path.resolve(
+      __dirname,
+      "../db/functions/get_course_by_idd.sql"
+    );
+    try {
+      sql = fs.readFileSync(filePath).toString();
+    } catch (error) {
+      console.log(error);
+    }
+
+    await sequelize.query(sql, {
+      type: QueryTypes.RAW,
+    } as QueryOptions | QueryOptionsWithType<QueryTypes.RAW>);
+
+    const [result, ...other] = await sequelize.query(
+      `SELECT * FROM get_course_by_idddd(${req.params.id})`
+    );
+
+    res.status(200).json({ result });
   } catch (error) {
     next(error);
   }
@@ -77,39 +111,38 @@ export const createCourse = async (
   }
 };
 
-// export const updateStudent = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   try {
-//     await Student.update(
-//       { age: req.body.age },
-//       { where: { id: req.params.id } }
-//     );
-//     res.status(200).json({
-//       success: true,
-//       message: "update successfully",
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
-
 export const deleteCourse = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    await Course.update(
-      { deletedAt: Date.now() },
-      { where: { id: req.params.id } }
+    // await Course.update(
+    //   { deletedAt: Date.now() },
+    //   { where: { id: req.params.id } }
+    // );
+
+    let sql;
+
+    const filePath = path.resolve(
+      __dirname,
+      "../db/functions/delete_course_by_id.sql"
     );
-    res.status(200).json({
-      success: true,
-      message: "deleted",
-    });
+    try {
+      sql = fs.readFileSync(filePath).toString();
+    } catch (error) {
+      console.log(error);
+    }
+
+    await sequelize.query(sql, {
+      type: QueryTypes.RAW,
+    } as QueryOptions | QueryOptionsWithType<QueryTypes.RAW>);
+
+    const [result, ...other] = await sequelize.query(
+      `SELECT delete_course_by_id(${req.params.id})`
+    );
+
+    res.status(200).json({ result });
   } catch (error) {
     next(error);
   }
