@@ -210,7 +210,6 @@ export const createStudentDB = async (
 ) => {
   try {
     const { id, fullName, age, courseId, courseName, subjects } = req.body;
-    console.log(id, "od");
 
     let sql;
 
@@ -229,7 +228,7 @@ export const createStudentDB = async (
     } as QueryOptions | QueryOptionsWithType<QueryTypes.RAW>);
 
     const [result, ...other] = await sequelize.query(
-      `SELECT * FROM create_or_update_student(${id}, '${fullName}', ${age}, ${courseId}, '${courseName}')`
+      `SELECT * FROM create_or_update_studenttt(${id}, '${fullName}', ${age}, ${courseId}, '${courseName}')`
     );
     // const data = result && result[0]["get_student_by_id"];
 

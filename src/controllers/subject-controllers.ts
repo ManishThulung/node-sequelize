@@ -109,7 +109,7 @@ export const createSubjectDB = async (
   next: NextFunction
 ) => {
   try {
-    const { name, courseId } = req.body;
+    const { subjectId, name, courseId } = req.body;
     let sql;
 
     const filePath = path.resolve(
@@ -127,7 +127,7 @@ export const createSubjectDB = async (
     } as QueryOptions | QueryOptionsWithType<QueryTypes.RAW>);
 
     const [result, ...other] = await sequelize.query(
-      `SELECT * FROM create_subject('${name}', ${courseId})`
+      `SELECT * FROM create_or_update_subjectt(${subjectId}, '${name}', ${courseId})`
     );
 
     res.status(200).json({ result });
