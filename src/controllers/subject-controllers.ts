@@ -30,6 +30,38 @@ export const getSubjects = async (
   }
 };
 
+export const getSubjectsDB = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    let sql;
+
+    const filePath = path.resolve(
+      __dirname,
+      "../db/functions/get_subjects.sql"
+    );
+    try {
+      sql = fs.readFileSync(filePath).toString();
+    } catch (error) {
+      console.log(error);
+    }
+
+    await sequelize.query(sql, {
+      type: QueryTypes.RAW,
+    } as QueryOptions | QueryOptionsWithType<QueryTypes.RAW>);
+
+    const [result, ...other] = await sequelize.query(
+      `SELECT * FROM get_subjectsss()`
+    );
+
+    res.status(200).json({ result });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getSubjectById = async (
   req: Request,
   res: Response,
@@ -66,6 +98,39 @@ export const createSubject = async (
       message: "this is to get all subjects details",
       data: subject,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createSubjectDB = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { name, courseId } = req.body;
+    let sql;
+
+    const filePath = path.resolve(
+      __dirname,
+      "../db/functions/create_subject.sql"
+    );
+    try {
+      sql = fs.readFileSync(filePath).toString();
+    } catch (error) {
+      console.log(error);
+    }
+
+    await sequelize.query(sql, {
+      type: QueryTypes.RAW,
+    } as QueryOptions | QueryOptionsWithType<QueryTypes.RAW>);
+
+    const [result, ...other] = await sequelize.query(
+      `SELECT * FROM create_subject('${name}', ${courseId})`
+    );
+
+    res.status(200).json({ result });
   } catch (error) {
     next(error);
   }

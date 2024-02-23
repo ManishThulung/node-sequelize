@@ -14,15 +14,27 @@ export const getStudents = async (
   next: NextFunction
 ) => {
   try {
-    // const result = await Student.findAll({
-    //   where: {
-    //     deletedAt: {
-    //       [Op.eq]: null,
-    //     },
-    //   },
-    //   attributes: { exclude: ["createdAt", "updatedAt", "deletedAt"] },
-    // });
+    const result = await Student.findAll({
+      where: {
+        deletedAt: {
+          [Op.eq]: null,
+        },
+      },
+      attributes: { exclude: ["createdAt", "updatedAt", "deletedAt"] },
+    });
 
+    res.status(200).json({ result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getStudentsDB = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
     let sql;
 
     const filePath = path.resolve(
@@ -97,6 +109,46 @@ export const getStudentById = async (
   }
 };
 
+export const getStudentByIdDB = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    let sql;
+
+    const filePath = path.resolve(
+      __dirname,
+      "../db/functions/get_student_by_id.sql"
+    );
+    try {
+      sql = fs.readFileSync(filePath).toString();
+    } catch (error) {
+      console.log(error);
+    }
+
+    await sequelize.query(sql, {
+      type: QueryTypes.RAW,
+    } as QueryOptions | QueryOptionsWithType<QueryTypes.RAW>);
+
+    const [result, ...other] = await sequelize.query(
+      `SELECT * FROM get_student_by_id(${req.params.id})`
+    );
+    const data = result && result[0]["get_student_by_id"];
+
+    if (!data) {
+      res.status(404).json({
+        success: false,
+        message: "Not found!",
+      });
+    }
+
+    res.status(200).json({ data });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createStudent = async (
   req: Request,
   res: Response,
@@ -104,29 +156,6 @@ export const createStudent = async (
 ) => {
   try {
     const { id, fullName, age, courseId, courseName, subjects } = req.body;
-
-    // if (subjects) {
-    //   subjects.forEach(async (subject: any) => {
-    //     const existSubject = await Subject.findOne({
-    //       where: {
-    //         name: subject,
-    //       },
-    //     });
-
-    //     let newSubject;
-    //     if (!existSubject) {
-    //       newSubject = await Subject.create({
-    //         name: subject,
-    //         courseId: course?.dataValues?.id ?? newCourse?.dataValues?.id,
-    //       });
-    //     }
-    //   });
-    // }
-
-    // const student = await Student.findOne({
-    //   where: { fullName },
-    //   attributes: { exclude: ["createdAt", "updatedAt", "deletedAt"] },
-    // });
 
     const courseData = {
       id: courseId,
@@ -136,6 +165,24 @@ export const createStudent = async (
     const courseInstance = await Course.upsert(courseData, {
       returning: true,
     });
+
+    if (subjects) {
+      subjects.forEach(async (subject: any) => {
+        const existSubject = await Subject.findOne({
+          where: {
+            name: subject,
+          },
+        });
+
+        let newSubject;
+        if (!existSubject) {
+          newSubject = await Subject.create({
+            name: subject,
+            courseId: courseInstance[0]?.dataValues?.id,
+          });
+        }
+      });
+    }
 
     const data = {
       id: id,
@@ -151,6 +198,49 @@ export const createStudent = async (
     if (instance) {
       return res.status(201).json({ data: instance[0] });
     }
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createStudentDB = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id, fullName, age, courseId, courseName, subjects } = req.body;
+    console.log(id, "od");
+
+    let sql;
+
+    const filePath = path.resolve(
+      __dirname,
+      "../db/functions/create_student.sql"
+    );
+    try {
+      sql = fs.readFileSync(filePath).toString();
+    } catch (error) {
+      console.log(error);
+    }
+
+    await sequelize.query(sql, {
+      type: QueryTypes.RAW,
+    } as QueryOptions | QueryOptionsWithType<QueryTypes.RAW>);
+
+    const [result, ...other] = await sequelize.query(
+      `SELECT * FROM create_or_update_student(${id}, '${fullName}', ${age}, ${courseId}, '${courseName}')`
+    );
+    // const data = result && result[0]["get_student_by_id"];
+
+    // if (!data) {
+    //   res.status(404).json({
+    //     success: false,
+    //     message: "Not found!",
+    //   });
+    // }
+
+    res.status(200).json({ result });
   } catch (error) {
     next(error);
   }
